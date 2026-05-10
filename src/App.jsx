@@ -1,144 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-
-const AREAS = [
-  { id: "atlas",    label: "Atlas App",           icon: "◆", color: "#FF6B35" },
-  { id: "medtalk",  label: "Med Talk Blog",        icon: "◈", color: "#4ECDC4" },
-  { id: "advocacy", label: "Advocacy / Club",      icon: "◉", color: "#A78BFA" },
-  { id: "mcat",     label: "MCAT",                 icon: "◇", color: "#FBD148" },
-  { id: "essays",   label: "Essays / Why Med",     icon: "◎", color: "#F9A8D4" },
-  { id: "clinical", label: "Clinical / Shadowing", icon: "◑", color: "#6EE7B7" },
-  { id: "muhsen",   label: "MUHSEN",               icon: "◐", color: "#FB923C" },
-  { id: "wetlab",   label: "Wet Lab",              icon: "◒", color: "#94A3B8" },
-];
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "./firebase";
+import AuthScreen from "./AuthScreen";
 
 function uid() { return Math.random().toString(36).slice(2, 9); }
-
-const PREFILLED = {
-  atlas: {
-    events: [
-      { id: uid(), date: "2025-09-01", title: "Atlas conceived", description: "Identified racial + gender disparities in special needs diagnoses as a solvable problem. Started researching the heuristic logic that would become the core of the tool." },
-      { id: uid(), date: "2026-01-01", title: "Core heuristic logic built", description: "Heuristic logic for the diagnostic tool is complete and grounded in published research. Not yet scientifically formalized — need a faculty PI attached and methodology documented." },
-    ],
-    nextSteps: [
-      "Identify and email 2–3 faculty PIs or research chairs to get scientific backing — URGENT",
-      "Informally document your methodology now, even just a Google Doc",
-      "Research how to access real diagnostic data (school district data, published datasets)",
-      "Draft a school district pitch deck — what would a district need to see to pilot this?",
-    ],
-    lastUpdated: new Date().toISOString(),
-  },
-  medtalk: {
-    events: [
-      { id: uid(), date: "2024-06-01", title: "Med Talk Blog founded", description: "Started blog from scratch. Recruited first writers. Serving as founder, editor-in-chief, and team manager." },
-      { id: uid(), date: "2024-12-01", title: "First major publication month", description: "December publication month. ~150–200 unique visitors. 20+ posts live. Team now includes 13–15 writers, editors, a graphics person, and social media." },
-      { id: uid(), date: "2025-03-01", title: "3 PhD webinars completed", description: "Hosted postdocs to talk about their research journeys and science communication. Elevated the blog beyond a simple publication into a training pipeline for pre-meds." },
-      { id: uid(), date: "2026-05-01", title: "April + May publication months ongoing", description: "130–200 unique visitors on publish months, ~70 on off-months. Blog is maturing. Next milestone: institutional backing from UCR School of Medicine." },
-    ],
-    nextSteps: [
-      "Prep a one-pager with metrics for the UCR School of Medicine pitch",
-      "Reach out to UCR SOM to schedule the pitch meeting",
-      "Run a simple reader survey — even 10 responses helps the application story",
-      "Get a faculty advisor or sponsor attached — this alone elevates the profile significantly",
-    ],
-    lastUpdated: new Date().toISOString(),
-  },
-  advocacy: {
-    events: [
-      { id: uid(), date: "2026-04-01", title: "Jose Medina Q&A at UCR", description: "Riverside County Supervisor District 1 (35-yr educator, newly elected) held a Q&A at UCR. Missed it — but can reach his office through whoever organized the event. He is still building his policy agenda." },
-      { id: uid(), date: "2026-05-01", title: "Advocacy landscape mapped", description: "Identified key orgs to plug into: Riverside County SELPA, Inland Regional Center, Autism Society IE, Community Access Center, TASK. UCR SDRC identified as internal club partner. U of Arizona Student Disability Advocacy Club as the model to borrow from." },
-    ],
-    nextSteps: [
-      "Email whoever organized the Jose Medina Q&A at UCR — ask for an intro to his office",
-      "Contact UCR's SDRC (sdrc.ucr.edu) — meet about forming a student advocacy org in partnership",
-      "Contact Riverside County SELPA (rcselpa.org) — find next community meeting and attend",
-      "Look up UCR's process for registering a new student organization",
-      "Contact Dr. Edwin Gomez's office (rcoe.us) — Riverside County Superintendent, direct path to special ed policy",
-    ],
-    lastUpdated: new Date().toISOString(),
-  },
-  mcat: {
-    events: [
-      { id: uid(), date: "2026-03-01", title: "Diagnostic MCAT taken", description: "Score: 499. Strong performance in CARS. Weak across bio, biochem, chem, and physics. Target score: 520+." },
-      { id: uid(), date: "2026-05-03", title: "Content review underway", description: "Reviewing all sections except CARS through June 10 while taking minimum credits in school and running heavy extracurriculars." },
-    ],
-    nextSteps: [
-      "LOCK IN your test date — work backwards from it now",
-      "Don't test too soon after June 10 — need 6–8 weeks of full-length practice",
-      "Late July / August is the realistic window",
-      "Track content review by section — prioritize weakest areas outside of CARS",
-    ],
-    lastUpdated: new Date().toISOString(),
-  },
-  essays: {
-    events: [
-      { id: uid(), date: "2026-05-03", title: "Why Medicine narrative identified", description: "Core insight mapped out: you work with kids being misdiagnosed due to racial/gender bias and you are building a tool to fix it. The physician identity = diagnostic authority + technical + cultural competency. Narrative is identified but not yet drafted." },
-    ],
-    nextSteps: [
-      "Start a running notes doc — write down specific BT/MUHSEN moments that moved you (this is your essay material)",
-      "Draft a rough Why Medicine paragraph: BT work → misdiagnosis bias → Atlas → physician identity",
-      "Identify the single most powerful anecdote from your clinical or community work",
-      "Email UCR Health Professions Advising — understand the committee letter process for the 2027 cycle",
-    ],
-    lastUpdated: new Date().toISOString(),
-  },
-  clinical: {
-    events: [
-      { id: uid(), date: "2025-06-01", title: "IR shadowing started", description: "Interventional Radiology shadowing — high quality, physician-facing time. Ongoing. Planning to expand to other specialties." },
-      { id: uid(), date: "2025-08-01", title: "Behavior Technician role started", description: "6 hrs/week with a Latino child deeper in Riverside. Direct care with an underserved population. Will reach 600+ hours by application time. Strong essay material." },
-      { id: uid(), date: "2026-05-01", title: "EMT route ruled out", description: "Clinical story already strong — IR shadowing plus 600+ hours of BT covers the bases. Better to invest remaining time in Atlas, advocacy, and club rather than adding EMT hours. EMT cert held but not pursuing." },
-    ],
-    nextSteps: [
-      "Identify 1–2 shadowing opportunities in pediatrics or neurology (directly relevant to special needs narrative)",
-      "Use MUHSEN or BT network for warm physician intros",
-      "Keep logging BT hours accurately — 600+ is the target",
-      "Document specific moments from shadowing and BT for essays",
-    ],
-    lastUpdated: new Date().toISOString(),
-  },
-  muhsen: {
-    events: [
-      { id: uid(), date: "2025-01-01", title: "MUHSEN Coordinator role started", description: "20 hrs/week coordinating special needs events for the Muslim community across SoCal and the Inland Empire. Intersection of disability, Muslim identity, and underserved communities. Forms a coherent narrative alongside BT work." },
-    ],
-    nextSteps: [
-      "Identify one specific MUHSEN event or moment worth writing about in essays",
-      "Look for a leadership expansion — organizing a larger event, training other volunteers",
-      "Document impact metrics: families served, events organized, attendees",
-    ],
-    lastUpdated: new Date().toISOString(),
-  },
-  wetlab: {
-    events: [
-      { id: uid(), date: "2024-09-01", title: "Wet lab started", description: "Joined wet lab. Not a passion area — treated strategically as a research credential. Will have ~1400 hours by application time, which checks the research box and lends credibility to Atlas." },
-    ],
-    nextSteps: [
-      "Decide if you are staying in the lab until application — if not, plan the exit timeline",
-      "Ask PI if there is any angle connecting the work to diagnostic tools, bias in research, or community health",
-      "Make sure you can speak competently about the research in interviews even if it is not your passion",
-    ],
-    lastUpdated: new Date().toISOString(),
-  },
-};
-
-const STORAGE_KEY = "app-tracker-v2";
-
-function loadLocal() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || null; } catch { return null; }
-}
-function saveLocal(d) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch {}
-}
-async function persistRemote(d) {
-  try { if (window.storage) await window.storage.set(STORAGE_KEY, JSON.stringify(d)); } catch {}
-}
-async function loadRemote() {
-  try {
-    if (window.storage) {
-      const r = await window.storage.get(STORAGE_KEY);
-      if (r?.value) return JSON.parse(r.value);
-    }
-  } catch {}
-  return null;
-}
 
 function defaultArea() { return { events: [], nextSteps: [""], lastUpdated: null }; }
 
@@ -170,10 +36,10 @@ const ghostBtn = {
   padding: "7px 14px", fontSize: 12, fontFamily: "monospace",
 };
 
-// ── AddEventModal ─────────────────────────────────────────────────────────────
-function EventModal({ color, onSave, onClose, initial, initialDate, isDone }) {
+// ── EventModal ────────────────────────────────────────────────────────────────
+function EventModal({ color, onSave, onClose, initial, isDone }) {
   const [title, setTitle] = useState(initial?.title || "");
-  const [date, setDate]   = useState(initial?.date || initialDate || new Date().toISOString().slice(0, 10));
+  const [date, setDate]   = useState(initial?.date || new Date().toISOString().slice(0, 10));
   const [desc, setDesc]   = useState(initial?.description || "");
 
   return (
@@ -188,7 +54,7 @@ function EventModal({ color, onSave, onClose, initial, initialDate, isDone }) {
         </div>
         <input autoFocus value={title} onChange={e => setTitle(e.target.value)} placeholder="Event title..." style={baseInput} />
         <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ ...baseInput, marginTop: 10, colorScheme: "dark" }} />
-        <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Description — what happened, context for future you, what it means for the application..." rows={4} style={{ ...baseInput, marginTop: 10, resize: "vertical", lineHeight: 1.65 }} />
+        <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Description — what happened, context for future you, what it means going forward..." rows={4} style={{ ...baseInput, marginTop: 10, resize: "vertical", lineHeight: 1.65 }} />
         <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end" }}>
           <button onClick={onClose} style={ghostBtn}>Cancel</button>
           <button onClick={() => { if (title && date) onSave({ title, date, description: desc }); }} style={{ ...ghostBtn, background: color + "20", borderColor: color, color }}>
@@ -200,14 +66,13 @@ function EventModal({ color, onSave, onClose, initial, initialDate, isDone }) {
   );
 }
 
-// ── EventRow ─────────────────────────────────────────────────────────────────
+// ── EventRow ──────────────────────────────────────────────────────────────────
 function EventRow({ ev, color, isLast, onEdit, onDelete }) {
   const [hov, setHov]   = useState(false);
   const [open, setOpen] = useState(false);
 
   return (
     <div style={{ display: "flex", gap: 0, position: "relative" }} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
-      {/* spine + dot */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 16, flexShrink: 0, marginRight: 22 }}>
         <div style={{
           width: 14, height: 14, borderRadius: "50%", marginTop: 5, zIndex: 1, flexShrink: 0,
@@ -217,7 +82,6 @@ function EventRow({ ev, color, isLast, onEdit, onDelete }) {
         {!isLast && <div style={{ flex: 1, width: 2, background: color + "25", minHeight: 28 }} />}
       </div>
 
-      {/* content */}
       <div style={{ flex: 1, paddingBottom: isLast ? 0 : 28, cursor: ev.description ? "pointer" : "default" }} onClick={() => ev.description && setOpen(o => !o)}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
           <span style={{ fontSize: 11, color, fontFamily: "monospace", letterSpacing: "0.06em", opacity: 0.75, flexShrink: 0 }}>
@@ -239,7 +103,6 @@ function EventRow({ ev, color, isLast, onEdit, onDelete }) {
         )}
       </div>
 
-      {/* hover actions */}
       {hov && (
         <div style={{ display: "flex", gap: 5, alignItems: "flex-start", paddingTop: 2, flexShrink: 0 }}>
           <button onClick={e => { e.stopPropagation(); onEdit(); }} style={{ ...ghostBtn, padding: "3px 9px", fontSize: 11 }}>edit</button>
@@ -250,43 +113,63 @@ function EventRow({ ev, color, isLast, onEdit, onDelete }) {
   );
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
+// ── Main ──────────────────────────────────────────────────────────────────────
 export default function AppTracker() {
-  const [data, setData]     = useState(null);
-  const [customAreas, setCA] = useState([]);
-  const [active, setActive]  = useState("atlas");
-  const [modal, setModal]    = useState(false);
-  const [editing, setEditing] = useState(null);
+  const [user, setUser]           = useState(undefined); // undefined=loading, null=signed out
+  const [data, setData]           = useState(null);
+  const [customAreas, setCA]      = useState([]);
+  const [active, setActive]       = useState(null);
+  const [modal, setModal]         = useState(false);
+  const [editing, setEditing]     = useState(null);
   const [addingArea, setAddingArea] = useState(false);
   const [newAreaName, setNewAreaName] = useState("");
-  const [saved, setSaved]    = useState(false);
-  const [doneStep, setDoneStep] = useState(null);
+  const [saved, setSaved]         = useState(false);
+  const [doneStep, setDoneStep]   = useState(null);
   const saveTimer = useRef();
 
+  // Auth state listener
   useEffect(() => {
-    (async () => {
-      const remote = await loadRemote();
-      const local  = loadLocal();
-      const stored = remote || local;
-      if (stored?.areas && Object.keys(stored.areas).length > 0) {
-        setData(stored.areas);
-        setCA(stored.customAreas || []);
-      } else {
-        setData(PREFILLED);
-      }
-    })();
+    return onAuthStateChanged(auth, u => setUser(u || null));
   }, []);
 
-  const allAreas = [...AREAS, ...customAreas];
+  // Load user data from Firestore when auth state resolves
+  useEffect(() => {
+    if (user === undefined) return;
+    if (!user) { setData(null); setCA([]); setActive(null); return; }
+    (async () => {
+      const snap = await getDoc(doc(db, "users", user.uid));
+      if (snap.exists()) {
+        const d = snap.data();
+        const ca = d.customAreas || [];
+        setData(d.areas || {});
+        setCA(ca);
+        setActive(ca.length > 0 ? ca[0].id : null);
+      } else {
+        setData({});
+        setCA([]);
+        setActive(null);
+      }
+    })();
+  }, [user]);
+
+  // Keep active pointing at a valid area if areas change
+  useEffect(() => {
+    if (customAreas.length > 0 && (!active || !customAreas.find(a => a.id === active))) {
+      setActive(customAreas[0].id);
+    }
+  }, [customAreas, active]);
 
   function getArea(id) { return data?.[id] || defaultArea(); }
 
   function persist(nextData, nextCA) {
-    const payload = { areas: nextData, customAreas: nextCA ?? customAreas };
-    saveLocal(payload);
+    if (!user) return;
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
-      await persistRemote(payload);
+      await setDoc(doc(db, "users", user.uid), {
+        areas: nextData,
+        customAreas: nextCA ?? customAreas,
+        updatedAt: new Date().toISOString(),
+      });
       setSaved(true);
       setTimeout(() => setSaved(false), 1400);
     }, 500);
@@ -313,23 +196,19 @@ export default function AppTracker() {
   }
 
   function deleteEvent(id) {
-    const a = getArea(active);
-    updateArea(active, { events: (a.events || []).filter(e => e.id !== id) });
+    updateArea(active, { events: (getArea(active).events || []).filter(e => e.id !== id) });
   }
 
   function updateStep(idx, val) {
-    const a = getArea(active);
-    const steps = [...(a.nextSteps || [""])];
+    const steps = [...(getArea(active).nextSteps || [""])];
     steps[idx] = val;
     updateArea(active, { nextSteps: steps });
   }
   function addStep() {
-    const a = getArea(active);
-    updateArea(active, { nextSteps: [...(a.nextSteps || [""]), ""] });
+    updateArea(active, { nextSteps: [...(getArea(active).nextSteps || [""]), ""] });
   }
   function removeStep(idx) {
-    const a = getArea(active);
-    const steps = (a.nextSteps || [""]).filter((_, i) => i !== idx);
+    const steps = (getArea(active).nextSteps || [""]).filter((_, i) => i !== idx);
     updateArea(active, { nextSteps: steps.length ? steps : [""] });
   }
 
@@ -343,9 +222,9 @@ export default function AppTracker() {
 
   function doAddArea() {
     if (!newAreaName.trim()) return;
-    const colors = ["#FF8C69","#57C4E5","#B8E986","#FFB347","#DA70D6","#87CEEB"];
+    const colors = ["#FF8C69","#57C4E5","#B8E986","#FFB347","#DA70D6","#87CEEB","#FF6B35","#4ECDC4","#A78BFA"];
     const icons  = ["◆","◈","◉","◇","◎","◑","◐","◒","◓"];
-    const id = "custom_" + Date.now();
+    const id = "area_" + Date.now();
     const entry = { id, label: newAreaName.trim(), icon: icons[customAreas.length % icons.length], color: colors[customAreas.length % colors.length] };
     const updatedCA = [...customAreas, entry];
     setCA(updatedCA);
@@ -355,14 +234,59 @@ export default function AppTracker() {
     persist(next, updatedCA);
   }
 
-  if (!data) return (
-    <div style={{ minHeight: "100vh", background: "#0D0D12", display: "flex", alignItems: "center", justifyContent: "center", color: "#333", fontFamily: "monospace", fontSize: 13 }}>
+  // ── Loading ───────────────────────────────────────────────────────────────
+  if (user === undefined || (user && data === null)) return (
+    <div style={{ minHeight: "100vh", background: "#0D0D12", display: "flex", alignItems: "center", justifyContent: "center", color: "#252535", fontFamily: "monospace", fontSize: 13 }}>
       loading...
     </div>
   );
 
-  const area     = getArea(active);
-  const areaInfo = allAreas.find(a => a.id === active) || allAreas[0];
+  if (!user) return <AuthScreen />;
+
+  // ── No areas yet ──────────────────────────────────────────────────────────
+  if (customAreas.length === 0) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#0D0D12", color: "#E2E0DB", fontFamily: "Georgia, serif", display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "24px 36px 0", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 14 }}>
+          <span style={{ fontSize: 11, color: "#252535", fontFamily: "monospace" }}>{user.email}</span>
+          <button onClick={() => signOut(auth)} style={{ ...ghostBtn, fontSize: 11 }}>sign out</button>
+        </div>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.22em", color: "#252530", textTransform: "uppercase", fontFamily: "monospace" }}>
+            retiscape
+          </div>
+          {addingArea ? (
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
+              <input
+                autoFocus value={newAreaName} onChange={e => setNewAreaName(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") doAddArea(); if (e.key === "Escape") setAddingArea(false); }}
+                placeholder="Area name..."
+                style={{ ...baseInput, width: 200, padding: "8px 12px", fontSize: 13 }}
+              />
+              <button onClick={doAddArea} style={{ ...ghostBtn, padding: "7px 14px", fontSize: 12 }}>Create</button>
+              <button onClick={() => setAddingArea(false)} style={{ background: "transparent", border: "none", color: "#444", cursor: "pointer", fontSize: 20, lineHeight: 1 }}>×</button>
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: 20, fontWeight: 400, color: "#333", letterSpacing: "-0.01em" }}>
+                No areas yet
+              </div>
+              <div style={{ fontSize: 12, color: "#252535", fontFamily: "monospace", marginBottom: 4 }}>
+                Create your first area to start tracking.
+              </div>
+              <button onClick={() => setAddingArea(true)} style={{ ...ghostBtn, borderStyle: "dashed", padding: "9px 22px", fontSize: 13 }}>
+                + create area
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Full app ──────────────────────────────────────────────────────────────
+  const areaInfo = customAreas.find(a => a.id === active) || customAreas[0];
+  const area     = getArea(areaInfo.id);
   const events   = [...(area.events || [])].sort((a, b) => a.date.localeCompare(b.date));
   const steps    = area.nextSteps || [""];
 
@@ -377,8 +301,8 @@ export default function AppTracker() {
       {/* HEADER */}
       <div style={{ padding: "28px 36px 0", display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
         <div>
-          <div style={{ fontSize: 10, letterSpacing: "0.22em", color: "#383838", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 6 }}>
-            Med School Application · 2027 Cycle
+          <div style={{ fontSize: 10, letterSpacing: "0.22em", color: "#252535", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 6 }}>
+            retiscape
           </div>
           <h1 style={{ margin: 0, fontSize: 27, fontWeight: 400, letterSpacing: "-0.02em", color: areaInfo.color, transition: "color 0.25s ease" }}>
             {areaInfo.icon}&ensp;{areaInfo.label}
@@ -386,13 +310,15 @@ export default function AppTracker() {
         </div>
         <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
           {saved && <span style={{ fontSize: 11, color: "#4ECDC4", fontFamily: "monospace", letterSpacing: "0.08em" }}>✓ saved</span>}
-          {area.lastUpdated && <span style={{ fontSize: 11, color: "#2C2C38", fontFamily: "monospace" }}>updated {timeAgo(area.lastUpdated)}</span>}
+          {area.lastUpdated && <span style={{ fontSize: 11, color: "#252535", fontFamily: "monospace" }}>updated {timeAgo(area.lastUpdated)}</span>}
+          <span style={{ fontSize: 11, color: "#252535", fontFamily: "monospace" }}>{user.email}</span>
+          <button onClick={() => signOut(auth)} style={{ ...ghostBtn, fontSize: 11 }}>sign out</button>
         </div>
       </div>
 
       {/* TABS */}
       <div style={{ padding: "20px 36px 0", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-        {allAreas.map(a => (
+        {customAreas.map(a => (
           <button key={a.id} onClick={() => setActive(a.id)} style={{
             padding: "6px 14px",
             background: active === a.id ? a.color : "transparent",
@@ -466,7 +392,6 @@ export default function AppTracker() {
 
         {/* NEXT STEPS */}
         <div style={{ marginTop: events.length > 0 ? 4 : 0 }}>
-          {/* connector row */}
           {events.length > 0 && (
             <div style={{ display: "flex", alignItems: "center", gap: 22, marginBottom: 20 }}>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 16, flexShrink: 0 }}>
@@ -526,8 +451,7 @@ export default function AppTracker() {
                       borderRadius: 4, color: areaInfo.color, cursor: "pointer",
                       fontSize: 11, padding: "4px 9px", fontFamily: "monospace",
                       flexShrink: 0, marginTop: 3, letterSpacing: "0.04em",
-                      transition: "background 0.15s, border-color 0.15s",
-                      lineHeight: 1.4,
+                      transition: "background 0.15s, border-color 0.15s", lineHeight: 1.4,
                     }}
                     onMouseEnter={e => { e.target.style.background = areaInfo.color + "22"; e.target.style.borderColor = areaInfo.color; }}
                     onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.borderColor = areaInfo.color + "40"; }}
