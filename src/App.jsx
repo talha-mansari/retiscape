@@ -4,6 +4,9 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "./firebase";
 import AuthScreen from "./AuthScreen";
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 function uid() { return Math.random().toString(36).slice(2, 9); }
 
@@ -114,6 +117,85 @@ function EventRow({ ev, color, isLast, onEdit, onDelete }) {
   );
 }
 
+// ── SortableStep ──────────────────────────────────────────────────────────────
+function SortableStep({ id, idx, step, stepsLength, areaInfo, updateStep, removeStep, setDoneStep, addStep }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const [hov, setHov] = useState(false);
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        display: "flex", alignItems: "center", gap: 10,
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+        boxShadow: isDragging ? "0 4px 20px rgba(0,0,0,0.5)" : "none",
+        zIndex: isDragging ? 1 : 0,
+        position: "relative",
+      }}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        style={{
+          width: 14, flexShrink: 0, cursor: isDragging ? "grabbing" : "grab",
+          color: areaInfo.color, fontSize: 14,
+          opacity: hov ? 0.6 : 0,
+          transition: "opacity 0.15s",
+          userSelect: "none", display: "flex", alignItems: "center", justifyContent: "center",
+        }}
+      >⠿</div>
+      <div style={{
+        width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
+        background: areaInfo.color + "16", border: `1px solid ${areaInfo.color}50`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 10, color: areaInfo.color, fontFamily: "monospace",
+        transition: "background 0.15s",
+      }}>
+        {idx + 1}
+      </div>
+      <input
+        value={step}
+        onChange={e => updateStep(idx, e.target.value)}
+        onKeyDown={e => {
+          if (e.key === "Enter") addStep();
+          if (e.key === "Backspace" && !step && stepsLength > 1) removeStep(idx);
+        }}
+        placeholder={idx === 0 ? "The first thing you'd do if you sat down right now..." : "Next step..."}
+        style={{
+          flex: 1, background: "#0E0E16", border: "1px solid #1E1E2A",
+          borderRadius: 5, color: "#C5C2BC", padding: "9px 13px",
+          fontSize: 14, fontFamily: "Georgia, serif", outline: "none",
+          transition: "border-color 0.15s",
+        }}
+        onFocus={e => e.target.style.borderColor = areaInfo.color + "60"}
+        onBlur={e => e.target.style.borderColor = "#1E1E2A"}
+      />
+      {step && (
+        <button
+          title="Mark done — adds to timeline"
+          onClick={() => setDoneStep({ idx, title: step })}
+          style={{
+            background: "transparent", border: `1px solid ${areaInfo.color}40`,
+            borderRadius: 4, color: areaInfo.color, cursor: "pointer",
+            fontSize: 11, padding: "4px 9px", fontFamily: "monospace",
+            flexShrink: 0, letterSpacing: "0.04em",
+            transition: "background 0.15s, border-color 0.15s", lineHeight: 1.4,
+          }}
+          onMouseEnter={e => { e.target.style.background = areaInfo.color + "22"; e.target.style.borderColor = areaInfo.color; }}
+          onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.borderColor = areaInfo.color + "40"; }}
+        >✓ done</button>
+      )}
+      {stepsLength > 1 && (
+        <button onClick={() => removeStep(idx)} style={{ background: "transparent", border: "none", color: "#bbb", cursor: "pointer", fontSize: 19, padding: "2px 4px", lineHeight: 1, flexShrink: 0 }}>×</button>
+      )}
+    </div>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function AppTracker() {
   const navigate = useNavigate();
@@ -128,6 +210,11 @@ export default function AppTracker() {
   const [saved, setSaved]         = useState(false);
   const [doneStep, setDoneStep]   = useState(null);
   const saveTimer = useRef();
+  const stepIdsRef = useRef({ areaId: null, ids: [] });
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor)
+  );
 
   // Auth state listener
   useEffect(() => {
@@ -210,8 +297,13 @@ export default function AppTracker() {
     updateArea(active, { nextSteps: [...(getArea(active).nextSteps || [""]), ""] });
   }
   function removeStep(idx) {
+    stepIdsRef.current.ids = stepIdsRef.current.ids.filter((_, i) => i !== idx);
     const steps = (getArea(active).nextSteps || [""]).filter((_, i) => i !== idx);
     updateArea(active, { nextSteps: steps.length ? steps : [""] });
+  }
+  function reorderSteps(oldIdx, newIdx) {
+    stepIdsRef.current.ids = arrayMove(stepIdsRef.current.ids, oldIdx, newIdx);
+    updateArea(active, { nextSteps: arrayMove(getArea(active).nextSteps || [""], oldIdx, newIdx) });
   }
 
   function completeStep(idx, ev) {
@@ -291,6 +383,15 @@ export default function AppTracker() {
   const area     = getArea(areaInfo.id);
   const events   = [...(area.events || [])].sort((a, b) => a.date.localeCompare(b.date));
   const steps    = area.nextSteps || [""];
+
+  // Stable IDs for dnd-kit — must not change on reorder or dnd-kit snaps back
+  if (stepIdsRef.current.areaId !== areaInfo.id) {
+    stepIdsRef.current = { areaId: areaInfo.id, ids: steps.map(() => uid()) };
+  } else {
+    while (stepIdsRef.current.ids.length < steps.length) stepIdsRef.current.ids.push(uid());
+    if (stepIdsRef.current.ids.length > steps.length) stepIdsRef.current.ids.length = steps.length;
+  }
+  const stableStepIds = stepIdsRef.current.ids;
 
   const hasData = (id) => {
     const a = data[id];
@@ -421,53 +522,34 @@ export default function AppTracker() {
           )}
 
           <div style={{ paddingLeft: events.length > 0 ? 38 : 0, display: "flex", flexDirection: "column", gap: 9 }}>
-            {steps.map((step, idx) => (
-              <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                <div style={{
-                  width: 22, height: 22, borderRadius: "50%", flexShrink: 0, marginTop: 3,
-                  background: areaInfo.color + "16", border: `1px solid ${areaInfo.color}50`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 10, color: areaInfo.color, fontFamily: "monospace",
-                }}>
-                  {idx + 1}
-                </div>
-                <input
-                  value={step}
-                  onChange={e => updateStep(idx, e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter") addStep();
-                    if (e.key === "Backspace" && !step && steps.length > 1) removeStep(idx);
-                  }}
-                  placeholder={idx === 0 ? "The first thing you'd do if you sat down right now..." : "Next step..."}
-                  style={{
-                    flex: 1, background: "#0E0E16", border: "1px solid #1E1E2A",
-                    borderRadius: 5, color: "#C5C2BC", padding: "9px 13px",
-                    fontSize: 14, fontFamily: "Georgia, serif", outline: "none",
-                    transition: "border-color 0.15s",
-                  }}
-                  onFocus={e => e.target.style.borderColor = areaInfo.color + "60"}
-                  onBlur={e => e.target.style.borderColor = "#1E1E2A"}
-                />
-                {step && (
-                  <button
-                    title="Mark done — adds to timeline"
-                    onClick={() => setDoneStep({ idx, title: step })}
-                    style={{
-                      background: "transparent", border: `1px solid ${areaInfo.color}40`,
-                      borderRadius: 4, color: areaInfo.color, cursor: "pointer",
-                      fontSize: 11, padding: "4px 9px", fontFamily: "monospace",
-                      flexShrink: 0, marginTop: 3, letterSpacing: "0.04em",
-                      transition: "background 0.15s, border-color 0.15s", lineHeight: 1.4,
-                    }}
-                    onMouseEnter={e => { e.target.style.background = areaInfo.color + "22"; e.target.style.borderColor = areaInfo.color; }}
-                    onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.borderColor = areaInfo.color + "40"; }}
-                  >✓ done</button>
-                )}
-                {steps.length > 1 && (
-                  <button onClick={() => removeStep(idx)} style={{ background: "transparent", border: "none", color: "#bbb", cursor: "pointer", fontSize: 19, padding: "2px 4px", lineHeight: 1, flexShrink: 0, marginTop: 4 }}>×</button>
-                )}
-              </div>
-            ))}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={({ active: dragActive, over }) => {
+                if (over && dragActive.id !== over.id) {
+                  const oldIdx = stableStepIds.indexOf(dragActive.id);
+                  const newIdx = stableStepIds.indexOf(over.id);
+                  if (oldIdx !== -1 && newIdx !== -1) reorderSteps(oldIdx, newIdx);
+                }
+              }}
+            >
+              <SortableContext items={stableStepIds} strategy={verticalListSortingStrategy}>
+                {steps.map((step, idx) => (
+                  <SortableStep
+                    key={stableStepIds[idx]}
+                    id={stableStepIds[idx]}
+                    idx={idx}
+                    step={step}
+                    stepsLength={steps.length}
+                    areaInfo={areaInfo}
+                    updateStep={updateStep}
+                    removeStep={removeStep}
+                    setDoneStep={setDoneStep}
+                    addStep={addStep}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
             <button onClick={addStep} style={{ ...ghostBtn, alignSelf: "flex-start", marginTop: 2, fontSize: 11, padding: "5px 13px" }}>
               + step
             </button>
@@ -489,7 +571,7 @@ export default function AppTracker() {
       )}
 
       <div style={{ padding: "0 36px 20px", fontSize: 10, color: "#bbb", fontFamily: "monospace", letterSpacing: "0.1em" }}>
-        auto-saves · tab to switch area · enter in a step field to add the next one
+        auto-saves · tab to switch area · enter to add step · drag ⠿ to reorder
       </div>
     </div>
   );

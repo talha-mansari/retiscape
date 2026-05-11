@@ -504,7 +504,7 @@ export default function LandingPage() {
         boxSizing: "border-box",
       }}>
         <span style={{ fontFamily: "Georgia, serif", fontSize: isMobile ? 18 : 22, letterSpacing: "-0.02em", color: TX, fontWeight: 400 }}>
-          Retiscape
+          retiscape
         </span>
         <button style={ghostNavBtn} onClick={() => navigate("/app")}>Get started free</button>
       </nav>
