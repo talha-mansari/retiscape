@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
 import { auth, db } from "./firebase";
 import AuthScreen from "./AuthScreen";
 
@@ -115,6 +116,7 @@ function EventRow({ ev, color, isLast, onEdit, onDelete }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function AppTracker() {
+  const navigate = useNavigate();
   const [user, setUser]           = useState(undefined); // undefined=loading, null=signed out
   const [data, setData]           = useState(null);
   const [customAreas, setCA]      = useState([]);
@@ -249,7 +251,7 @@ export default function AppTracker() {
       <div style={{ minHeight: "100vh", background: "#0D0D12", color: "#E2E0DB", fontFamily: "Georgia, serif", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "24px 36px 0", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 14 }}>
           <span style={{ fontSize: 11, color: "#252535", fontFamily: "monospace" }}>{user.email}</span>
-          <button onClick={() => signOut(auth)} style={{ ...ghostBtn, fontSize: 11 }}>sign out</button>
+          <button onClick={() => signOut(auth).then(() => navigate("/"))} style={{ ...ghostBtn, fontSize: 11 }}>sign out</button>
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 }}>
           <div style={{ fontSize: 10, letterSpacing: "0.22em", color: "#252530", textTransform: "uppercase", fontFamily: "monospace" }}>
@@ -312,7 +314,7 @@ export default function AppTracker() {
           {saved && <span style={{ fontSize: 11, color: "#4ECDC4", fontFamily: "monospace", letterSpacing: "0.08em" }}>✓ saved</span>}
           {area.lastUpdated && <span style={{ fontSize: 11, color: "#252535", fontFamily: "monospace" }}>updated {timeAgo(area.lastUpdated)}</span>}
           <span style={{ fontSize: 11, color: "#252535", fontFamily: "monospace" }}>{user.email}</span>
-          <button onClick={() => signOut(auth)} style={{ ...ghostBtn, fontSize: 11 }}>sign out</button>
+          <button onClick={() => signOut(auth).then(() => navigate("/"))} style={{ ...ghostBtn, fontSize: 11 }}>sign out</button>
         </div>
       </div>
 

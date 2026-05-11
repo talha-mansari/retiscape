@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "./firebase";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const OG = "#FF6B35";   // primary orange
@@ -408,6 +411,13 @@ function AnimatedDemo() {
 // ── LandingPage ───────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    return onAuthStateChanged(auth, u => {
+      if (u) navigate("/app", { replace: true });
+    });
+  }, [navigate]);
 
   // Shared style objects computed once per render
   const sec = {
@@ -496,7 +506,7 @@ export default function LandingPage() {
         <span style={{ fontFamily: "Georgia, serif", fontSize: isMobile ? 18 : 22, letterSpacing: "-0.02em", color: TX, fontWeight: 400 }}>
           Retiscape
         </span>
-        <button style={ghostNavBtn}>Get started free</button>
+        <button style={ghostNavBtn} onClick={() => navigate("/app")}>Get started free</button>
       </nav>
 
       {/* ════════════════════════════════════════ HERO */}
@@ -519,7 +529,7 @@ export default function LandingPage() {
           </p>
         </FadeIn>
         <FadeIn delay={220}>
-          <button style={primaryBtn}>Get started free</button>
+          <button style={primaryBtn} onClick={() => navigate("/app")}>Get started free</button>
         </FadeIn>
       </section>
 
@@ -633,7 +643,7 @@ export default function LandingPage() {
                 Build your tracker manually. Unlimited tracks, events, and next steps. Yours forever.
               </p>
               <div>
-                <button style={primaryBtn}>Get started free</button>
+                <button style={primaryBtn} onClick={() => navigate("/app")}>Get started free</button>
               </div>
             </div>
           </FadeIn>
@@ -701,7 +711,7 @@ export default function LandingPage() {
           <p style={{ ...body, textAlign: "center", margin: "0 auto 40px", maxWidth: 420, fontSize: 15, color: "#888" }}>
             Free forever. No credit card. Built by a student, for students.
           </p>
-          <button style={primaryBtn}>Get started free</button>
+          <button style={primaryBtn} onClick={() => navigate("/app")}>Get started free</button>
         </FadeIn>
       </section>
 
