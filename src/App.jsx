@@ -33,7 +33,7 @@ const baseInput = {
 };
 const ghostBtn = {
   background: "transparent", border: "1px solid #252530",
-  borderRadius: 5, color: "#888", cursor: "pointer",
+  borderRadius: 5, color: "#bbb", cursor: "pointer",
   padding: "7px 14px", fontSize: 12, fontFamily: "monospace",
 };
 
@@ -92,13 +92,13 @@ function EventRow({ ev, color, isLast, onEdit, onDelete }) {
             {ev.title}
           </span>
           {ev.description && (
-            <span style={{ fontSize: 10, color: "#888", fontFamily: "monospace", marginLeft: 2 }}>
+            <span style={{ fontSize: 10, color: "#bbb", fontFamily: "monospace", marginLeft: 2 }}>
               {open ? "▲" : "▼"}
             </span>
           )}
         </div>
         {open && ev.description && (
-          <div style={{ fontSize: 13.5, color: "#888", lineHeight: 1.72, marginTop: 8, paddingRight: 80, borderLeft: `2px solid ${color}20`, paddingLeft: 14 }}>
+          <div style={{ fontSize: 13.5, color: "#bbb", lineHeight: 1.72, marginTop: 8, paddingRight: 80, borderLeft: `2px solid ${color}20`, paddingLeft: 14 }}>
             {ev.description}
           </div>
         )}
@@ -238,7 +238,7 @@ export default function AppTracker() {
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (user === undefined || (user && data === null)) return (
-    <div style={{ minHeight: "100vh", background: "#0D0D12", display: "flex", alignItems: "center", justifyContent: "center", color: "#888", fontFamily: "monospace", fontSize: 13 }}>
+    <div style={{ minHeight: "100vh", background: "#0D0D12", display: "flex", alignItems: "center", justifyContent: "center", color: "#bbb", fontFamily: "monospace", fontSize: 13 }}>
       loading...
     </div>
   );
@@ -250,11 +250,11 @@ export default function AppTracker() {
     return (
       <div style={{ minHeight: "100vh", background: "#0D0D12", color: "#E2E0DB", fontFamily: "Georgia, serif", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "24px 36px 0", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 14 }}>
-          <span style={{ fontSize: 11, color: "#888", fontFamily: "monospace" }}>{user.email}</span>
+          <span style={{ fontSize: 11, color: "#bbb", fontFamily: "monospace" }}>{user.email}</span>
           <button onClick={() => signOut(auth).then(() => navigate("/"))} style={{ ...ghostBtn, fontSize: 11 }}>sign out</button>
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 }}>
-          <div style={{ fontSize: 10, letterSpacing: "0.22em", color: "#666", textTransform: "uppercase", fontFamily: "monospace" }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.22em", color: "#bbb", textTransform: "uppercase", fontFamily: "monospace" }}>
             retiscape
           </div>
           {addingArea ? (
@@ -266,14 +266,14 @@ export default function AppTracker() {
                 style={{ ...baseInput, width: 200, padding: "8px 12px", fontSize: 13 }}
               />
               <button onClick={doAddArea} style={{ ...ghostBtn, padding: "7px 14px", fontSize: 12 }}>Create</button>
-              <button onClick={() => setAddingArea(false)} style={{ background: "transparent", border: "none", color: "#888", cursor: "pointer", fontSize: 20, lineHeight: 1 }}>×</button>
+              <button onClick={() => setAddingArea(false)} style={{ background: "transparent", border: "none", color: "#bbb", cursor: "pointer", fontSize: 20, lineHeight: 1 }}>×</button>
             </div>
           ) : (
             <>
-              <div style={{ fontSize: 20, fontWeight: 400, color: "#888", letterSpacing: "-0.01em" }}>
+              <div style={{ fontSize: 20, fontWeight: 400, color: "#bbb", letterSpacing: "-0.01em" }}>
                 No areas yet
               </div>
-              <div style={{ fontSize: 12, color: "#888", fontFamily: "monospace", marginBottom: 4 }}>
+              <div style={{ fontSize: 12, color: "#bbb", fontFamily: "monospace", marginBottom: 4 }}>
                 Create your first area to start tracking.
               </div>
               <button onClick={() => setAddingArea(true)} style={{ ...ghostBtn, borderStyle: "dashed", padding: "9px 22px", fontSize: 13 }}>
@@ -301,30 +301,33 @@ export default function AppTracker() {
     <div style={{ minHeight: "100vh", background: "#0D0D12", color: "#E2E0DB", fontFamily: "Georgia, serif", display: "flex", flexDirection: "column" }}>
 
       {/* HEADER */}
-      <div style={{ padding: "28px 36px 0", display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-        <div>
-          <div style={{ fontSize: 10, letterSpacing: "0.22em", color: "#666", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 6 }}>
+      <div>
+        <div style={{ padding: "28px 36px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.22em", color: "#bbb", textTransform: "uppercase", fontFamily: "monospace" }}>
             retiscape
           </div>
+          <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+            {saved && <span style={{ fontSize: 11, color: "#4ECDC4", fontFamily: "monospace", letterSpacing: "0.08em" }}>✓ saved</span>}
+            {area.lastUpdated && <span style={{ fontSize: 11, color: "#bbb", fontFamily: "monospace" }}>updated {timeAgo(area.lastUpdated)}</span>}
+            <span style={{ fontSize: 11, color: "#bbb", fontFamily: "monospace" }}>{user.email}</span>
+            <button onClick={() => signOut(auth).then(() => navigate("/"))} style={{ ...ghostBtn, fontSize: 11 }}>sign out</button>
+          </div>
+        </div>
+        <div style={{ maxWidth: 780, margin: "0 auto", padding: "0 36px" }}>
           <h1 style={{ margin: 0, fontSize: 27, fontWeight: 400, letterSpacing: "-0.02em", color: areaInfo.color, transition: "color 0.25s ease" }}>
             {areaInfo.icon}&ensp;{areaInfo.label}
           </h1>
         </div>
-        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-          {saved && <span style={{ fontSize: 11, color: "#4ECDC4", fontFamily: "monospace", letterSpacing: "0.08em" }}>✓ saved</span>}
-          {area.lastUpdated && <span style={{ fontSize: 11, color: "#888", fontFamily: "monospace" }}>updated {timeAgo(area.lastUpdated)}</span>}
-          <span style={{ fontSize: 11, color: "#888", fontFamily: "monospace" }}>{user.email}</span>
-          <button onClick={() => signOut(auth).then(() => navigate("/"))} style={{ ...ghostBtn, fontSize: 11 }}>sign out</button>
-        </div>
       </div>
 
       {/* TABS */}
-      <div style={{ padding: "20px 36px 0", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ padding: "20px 0 0" }}>
+      <div style={{ maxWidth: 780, margin: "0 auto", padding: "0 36px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
         {customAreas.map(a => (
           <button key={a.id} onClick={() => setActive(a.id)} style={{
             padding: "6px 14px",
             background: active === a.id ? a.color : "transparent",
-            color: active === a.id ? "#0D0D12" : hasData(a.id) ? a.color : "#888",
+            color: active === a.id ? "#0D0D12" : hasData(a.id) ? a.color : "#bbb",
             border: `1px solid ${active === a.id ? a.color : hasData(a.id) ? a.color + "55" : "#1E1E28"}`,
             borderRadius: 4, cursor: "pointer", fontSize: 12, fontFamily: "monospace",
             letterSpacing: "0.06em", fontWeight: active === a.id ? 700 : 400,
@@ -341,19 +344,20 @@ export default function AppTracker() {
               onKeyDown={e => { if (e.key === "Enter") doAddArea(); if (e.key === "Escape") setAddingArea(false); }}
               placeholder="Area name..." style={{ ...baseInput, width: 130, padding: "5px 10px", fontSize: 12 }} />
             <button onClick={doAddArea} style={{ ...ghostBtn, padding: "5px 12px", fontSize: 12 }}>Add</button>
-            <button onClick={() => setAddingArea(false)} style={{ background: "transparent", border: "none", color: "#888", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>×</button>
+            <button onClick={() => setAddingArea(false)} style={{ background: "transparent", border: "none", color: "#bbb", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>×</button>
           </div>
         ) : (
           <button onClick={() => setAddingArea(true)} style={{ ...ghostBtn, fontSize: 11, borderStyle: "dashed", padding: "5px 12px" }}>+ area</button>
         )}
       </div>
+      </div>
 
       {/* BODY */}
-      <div style={{ flex: 1, padding: "32px 36px 56px", maxWidth: 780, width: "100%", boxSizing: "border-box" }}>
+      <div style={{ flex: 1, padding: "32px 36px 56px", maxWidth: 780, width: "100%", boxSizing: "border-box", alignSelf: "center" }}>
 
         {/* Timeline header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
-          <div style={{ fontSize: 10, letterSpacing: "0.22em", color: "#888", textTransform: "uppercase", fontFamily: "monospace" }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.22em", color: "#bbb", textTransform: "uppercase", fontFamily: "monospace" }}>
             Progress timeline
           </div>
           <button onClick={() => setModal(true)} style={{
@@ -372,7 +376,7 @@ export default function AppTracker() {
         {/* Empty state */}
         {events.length === 0 && (
           <div style={{ paddingLeft: 38, paddingBottom: 32 }}>
-            <div style={{ fontSize: 13, color: "#888", fontFamily: "monospace" }}>
+            <div style={{ fontSize: 13, color: "#bbb", fontFamily: "monospace" }}>
               No events yet — click "log event" to start your timeline.
             </div>
           </div>
@@ -411,7 +415,7 @@ export default function AppTracker() {
           )}
 
           {events.length === 0 && (
-            <div style={{ fontSize: 10, letterSpacing: "0.2em", color: "#888", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 18 }}>
+            <div style={{ fontSize: 10, letterSpacing: "0.2em", color: "#bbb", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 18 }}>
               Next steps
             </div>
           )}
@@ -460,7 +464,7 @@ export default function AppTracker() {
                   >✓ done</button>
                 )}
                 {steps.length > 1 && (
-                  <button onClick={() => removeStep(idx)} style={{ background: "transparent", border: "none", color: "#888", cursor: "pointer", fontSize: 19, padding: "2px 4px", lineHeight: 1, flexShrink: 0, marginTop: 4 }}>×</button>
+                  <button onClick={() => removeStep(idx)} style={{ background: "transparent", border: "none", color: "#bbb", cursor: "pointer", fontSize: 19, padding: "2px 4px", lineHeight: 1, flexShrink: 0, marginTop: 4 }}>×</button>
                 )}
               </div>
             ))}
@@ -484,7 +488,7 @@ export default function AppTracker() {
         />
       )}
 
-      <div style={{ padding: "0 36px 20px", fontSize: 10, color: "#888", fontFamily: "monospace", letterSpacing: "0.1em" }}>
+      <div style={{ padding: "0 36px 20px", fontSize: 10, color: "#bbb", fontFamily: "monospace", letterSpacing: "0.1em" }}>
         auto-saves · tab to switch area · enter in a step field to add the next one
       </div>
     </div>
