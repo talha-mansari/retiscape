@@ -49,7 +49,7 @@ export default function AuthScreen() {
     <div style={{ minHeight: "100vh", background: "#0D0D12", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Georgia, serif" }}>
       <div style={{ width: 360, maxWidth: "90vw" }}>
         <div style={{ marginBottom: 42, textAlign: "center" }}>
-          <div style={{ fontSize: 10, letterSpacing: "0.22em", color: "#252530", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 12 }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.22em", color: "#666", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 12 }}>
             progress tracker
           </div>
           <div style={{ fontSize: 32, fontWeight: 400, letterSpacing: "-0.02em", color: "#E2E0DB" }}>
@@ -99,7 +99,7 @@ export default function AuthScreen() {
         <div style={{ marginTop: 22, textAlign: "center" }}>
           <button
             onClick={() => { setMode(m => m === "login" ? "signup" : "login"); setError(""); }}
-            style={{ background: "transparent", border: "none", color: "#333", cursor: "pointer", fontSize: 12, fontFamily: "monospace", letterSpacing: "0.04em" }}
+            style={{ background: "transparent", border: "none", color: "#888", cursor: "pointer", fontSize: 12, fontFamily: "monospace", letterSpacing: "0.04em" }}
           >
             {mode === "login" ? "No account? Sign up →" : "Have an account? Log in →"}
           </button>

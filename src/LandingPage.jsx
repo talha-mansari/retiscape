@@ -9,7 +9,7 @@ const TL = "#4ECDC4";   // teal accent
 const PU = "#A78BFA";   // purple accent
 const BG = "#0D0D12";   // background
 const TX = "#E2E0DB";   // main text
-const MU = "#666666";   // muted text
+const MU = "#888888";   // muted text
 const BD = "#1E1E2A";   // border
 const CB = "#0E0E16";   // card background
 const DK = "#141420";   // dark border / divider
@@ -637,7 +637,7 @@ export default function LandingPage() {
               </div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
                 <span style={{ fontFamily: "Georgia, serif", fontSize: 40, color: TX, letterSpacing: "-0.03em", lineHeight: 1 }}>$0</span>
-                <span style={{ fontFamily: "monospace", fontSize: 11, color: "#444" }}>/ forever</span>
+                <span style={{ fontFamily: "monospace", fontSize: 11, color: "#888" }}>/ forever</span>
               </div>
               <p style={{ fontFamily: "Georgia, serif", fontSize: 15, color: MU, lineHeight: 1.82, marginBottom: 28, flex: 1, marginTop: 20 }}>
                 Build your tracker manually. Unlimited tracks, events, and next steps. Yours forever.
@@ -660,7 +660,7 @@ export default function LandingPage() {
               {/* Badge */}
               <div style={{
                 position: "absolute", top: 16, right: 16,
-                fontSize: 9, letterSpacing: "0.14em", color: "#555",
+                fontSize: 9, letterSpacing: "0.14em", color: "#888",
                 textTransform: "uppercase", fontFamily: "monospace",
                 border: "1px solid #252535", borderRadius: 4, padding: "3px 8px",
               }}>
@@ -672,7 +672,7 @@ export default function LandingPage() {
               </div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
                 <span style={{ fontFamily: "Georgia, serif", fontSize: 40, color: TX, letterSpacing: "-0.03em", lineHeight: 1 }}>$4</span>
-                <span style={{ fontFamily: "monospace", fontSize: 11, color: "#444" }}>/ month</span>
+                <span style={{ fontFamily: "monospace", fontSize: 11, color: "#888" }}>/ month</span>
               </div>
               <p style={{ fontFamily: "Georgia, serif", fontSize: 15, color: MU, lineHeight: 1.82, marginBottom: 28, flex: 1, marginTop: 20 }}>
                 Just talk. Tell Retiscape what you've been working on and AI updates your timeline automatically.
@@ -681,7 +681,7 @@ export default function LandingPage() {
                 <button disabled style={{
                   background: "transparent",
                   border: `1px solid ${PU}33`,
-                  borderRadius: 6, color: "#444",
+                  borderRadius: 6, color: "#888",
                   padding: isMobile ? "13px 26px" : "15px 32px",
                   fontSize: isMobile ? 14 : 15,
                   fontFamily: "Georgia, serif",
@@ -721,10 +721,10 @@ export default function LandingPage() {
         padding: isMobile ? "36px 24px" : "48px 48px",
         textAlign: "center",
       }}>
-        <p style={{ fontFamily: "Georgia, serif", fontSize: 14, color: "#444", lineHeight: 1.78, marginBottom: 14 }}>
+        <p style={{ fontFamily: "Georgia, serif", fontSize: 14, color: "#888", lineHeight: 1.78, marginBottom: 14 }}>
           Built by a pre-med student who needed this. Made for anyone building something long-term.
         </p>
-        <p style={{ fontFamily: "monospace", fontSize: 11, color: "#252535", letterSpacing: "0.08em", margin: 0 }}>
+        <p style={{ fontFamily: "monospace", fontSize: 11, color: "#666", letterSpacing: "0.08em", margin: 0 }}>
           © 2026 Retiscape
         </p>
       </footer>
