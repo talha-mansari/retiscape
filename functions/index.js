@@ -18,7 +18,9 @@ const STRIPE_WEBHOOK_SECRET  = defineSecret("STRIPE_WEBHOOK_SECRET");
 
 const SYSTEM_PROMPT = `You are a project tracker assistant. The user tracks multiple "areas" (e.g. "Job Search", "Health", "Side Project"). Each area has a progress timeline of events and a list of next steps.
 
-Given the user's free-form update message and their current project state, determine what changes to make.
+The user's input may be a short casual update ("met with Dr. Angell today") or a long-form project status document. In either case, read the content and use your judgment to determine what actions to take:
+- Things that have been accomplished or completed → add_event actions
+- Things that are pending, in progress, or should be tracked as a next action → add_step actions
 
 Rules:
 - Infer the correct area from the message content and area labels. Be confident when it's clear.
@@ -26,6 +28,7 @@ Rules:
 - Dates default to today (${new Date().toISOString().slice(0, 10)}) unless the user specifies otherwise.
 - Only create a new area if the user explicitly says they want a new one.
 - Keep event titles concise (5-10 words). Put detail in description.
+- For long documents, generate as many actions as needed to capture everything meaningful — do not truncate.
 - Return ONLY valid JSON, no prose.
 
 Output schema:
@@ -64,11 +67,11 @@ exports.processUpdate = onCall({ cors: true, secrets: [ANTHROPIC_API_KEY] }, asy
     nextSteps: (areas[area.id]?.nextSteps || []).filter(Boolean),
   }));
 
-  const userMessage = `Current project state:\n${JSON.stringify(stateContext, null, 2)}\n\nUser update: "${message.trim()}"`;
+  const userMessage = `Current project state:\n${JSON.stringify(stateContext, null, 2)}\n\nUser update:\n${message.trim()}`;
 
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 1024,
+    max_tokens: 4096,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: userMessage }],
   });
@@ -81,7 +84,7 @@ exports.processUpdate = onCall({ cors: true, secrets: [ANTHROPIC_API_KEY] }, asy
   try {
     result = JSON.parse(jsonText);
   } catch {
-    throw new HttpsError("internal", "Failed to parse Claude response.");
+    throw new HttpsError("invalid-argument", "Couldn't interpret that as a tracker update. Try describing a specific event or action (e.g. 'Met with Dr. Angell today about the pilot').");
   }
 
   return result;
@@ -93,7 +96,7 @@ async function checkPro(uid) {
   if (!snap.data()?.isPro) throw new HttpsError("permission-denied", "Pro subscription required.");
 }
 
-exports.transcribeAudio = onCall({ cors: true }, async (request) => {
+exports.transcribeAudio = onCall({ cors: true, timeoutSeconds: 300 }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
   await checkPro(uid);
@@ -106,7 +109,7 @@ exports.transcribeAudio = onCall({ cors: true }, async (request) => {
   else if (mimeType?.includes("mp4") || mimeType?.includes("m4a")) encoding = "MP4";
 
   const client = new SpeechClient();
-  const [response] = await client.recognize({
+  const [operation] = await client.longRunningRecognize({
     audio: { content: audioBase64 },
     config: {
       encoding,
@@ -114,6 +117,7 @@ exports.transcribeAudio = onCall({ cors: true }, async (request) => {
       enableAutomaticPunctuation: true,
     },
   });
+  const [response] = await operation.promise();
 
   const transcript = (response.results || [])
     .map(r => r.alternatives?.[0]?.transcript || "")

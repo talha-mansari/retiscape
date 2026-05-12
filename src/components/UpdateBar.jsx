@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { getFunctions, httpsCallable } from "firebase/functions";
 
 export default function UpdateBar({ user, data, customAreas, isPro, onApply }) {
@@ -10,10 +10,21 @@ export default function UpdateBar({ user, data, customAreas, isPro, onApply }) {
   const [showUpgrade, setUpgrade]       = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [areaPrompt, setAreaPrompt] = useState(null); // { pendingActions, candidates }
+  const [transcribing, setTranscribing] = useState(false);
+  const [dotPhase, setDotPhase] = useState(0);
+  const [recSeconds, setRecSeconds] = useState(0);
+  const recTimerRef = useRef(null);
   const recorderRef = useRef(null);
   const chunksRef   = useRef([]);
   const streamRef   = useRef(null);
   const inputRef    = useRef(null);
+
+  const dots = ['.', '..', '...', '..'][dotPhase];
+  useEffect(() => {
+    if (!transcribing && !loading) { setDotPhase(0); return; }
+    const id = setInterval(() => setDotPhase(p => (p + 1) % 4), 350);
+    return () => clearInterval(id);
+  }, [transcribing, loading]);
 
   function startListen() {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -30,7 +41,7 @@ export default function UpdateBar({ user, data, customAreas, isPro, onApply }) {
         stream.getTracks().forEach(t => t.stop());
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType });
         if (blob.size === 0) return;
-        setLoading(true);
+        setTranscribing(true);
         try {
           const reader = new FileReader();
           reader.onload = async () => {
@@ -41,16 +52,18 @@ export default function UpdateBar({ user, data, customAreas, isPro, onApply }) {
             if (result.data.transcript) {
               setText(t => (t + " " + result.data.transcript).trim());
             }
-            setLoading(false);
+            setTranscribing(false);
           };
           reader.readAsDataURL(blob);
         } catch (e) {
           setError(e.message || "Transcription failed.");
-          setLoading(false);
+          setTranscribing(false);
         }
       };
       recorder.start();
       recorderRef.current = recorder;
+      setRecSeconds(0);
+      recTimerRef.current = setInterval(() => setRecSeconds(s => s + 1), 1000);
       setListen(true);
     }).catch(() => {
       setError("Microphone permission denied.");
@@ -59,11 +72,13 @@ export default function UpdateBar({ user, data, customAreas, isPro, onApply }) {
 
   function stopListen() {
     recorderRef.current?.stop();
+    clearInterval(recTimerRef.current);
+    setRecSeconds(0);
     setListen(false);
   }
 
   async function submit(message) {
-    if (!message.trim() || loading) return;
+    if (!message.trim() || loading || transcribing) return;
     if (!isPro) { setUpgrade(true); return; }
 
     setLoading(true); setError(null); setSummary(null);
@@ -188,58 +203,73 @@ export default function UpdateBar({ user, data, customAreas, isPro, onApply }) {
           </div>
         )}
         <div style={{ maxWidth: 780, margin: "0 auto", display: "flex", gap: 8, alignItems: "center" }}>
-          {/* Mic button */}
-          <button
-            onClick={listening ? stopListen : startListen}
-            title={listening ? "Stop recording" : "Speak an update"}
-            style={{
-              width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
-              background: listening ? color + "25" : "transparent",
-              border: `1px solid ${listening ? color : "#252530"}`,
-              color: listening ? color : "#666",
-              cursor: "pointer", fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center",
-              transition: "all 0.15s",
-              animation: listening ? "micPulse 1.4s ease-in-out infinite" : "none",
-            }}
-          >
-            {listening ? "⏹" : "🎙"}
-          </button>
+          {/* Mic button + timer */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0 }}>
+            <button
+              onClick={listening ? stopListen : startListen}
+              title={listening ? "Stop recording" : "Speak an update"}
+              style={{
+                width: 36, height: 36, borderRadius: "50%",
+                background: listening ? color + "25" : "transparent",
+                border: `1px solid ${listening ? color : "#252530"}`,
+                color: listening ? color : "#666",
+                cursor: "pointer", fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "all 0.15s",
+                animation: listening ? "micPulse 1.4s ease-in-out infinite" : "none",
+              }}
+            >
+              {listening ? "⏹" : "🎙"}
+            </button>
+            {listening && (
+              <div style={{ fontSize: 9, fontFamily: "monospace", color: color, letterSpacing: "0.05em" }}>
+                {`${Math.floor(recSeconds / 60)}:${String(recSeconds % 60).padStart(2, "0")}`}
+              </div>
+            )}
+          </div>
 
           {/* Text input */}
-          <input
-            ref={inputRef}
-            value={text}
-            onChange={e => setText(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(text); } }}
-            placeholder={isPro ? "What's new? (speak or type an update…)" : "AI updates — Pro feature"}
-            disabled={loading}
-            style={{
-              flex: 1, background: "#0E0E16",
-              border: `1px solid ${loading ? color + "50" : "#1E1E2A"}`,
-              borderRadius: 6, color: "#DDD", padding: "9px 13px",
-              fontSize: 14, fontFamily: "Georgia, serif", outline: "none",
-              transition: "border-color 0.15s",
-              opacity: loading ? 0.6 : 1,
-            }}
-            onFocus={e => e.target.style.borderColor = color + "60"}
-            onBlur={e => e.target.style.borderColor = loading ? color + "50" : "#1E1E2A"}
-          />
+          <div style={{ flex: 1, position: "relative" }}>
+            <textarea
+              ref={inputRef}
+              value={transcribing || loading ? `loading${dots}` : text}
+              onChange={e => {
+                setText(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = Math.min(e.target.scrollHeight, 160) + "px";
+              }}
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(text); } }}
+              placeholder={isPro ? "What's new? (speak or type an update…)" : "AI updates — Pro feature"}
+              disabled={loading || transcribing}
+              readOnly={loading || transcribing}
+              rows={1}
+              style={{
+                width: "100%", background: "#0E0E16", resize: "none", overflow: "hidden",
+                border: `1px solid ${(loading || transcribing) ? color + "50" : "#1E1E2A"}`,
+                borderRadius: 6, color: "#DDD", padding: "9px 13px",
+                fontSize: 14, fontFamily: "Georgia, serif", outline: "none",
+                transition: "border-color 0.15s", boxSizing: "border-box",
+                opacity: (loading || transcribing) ? 0.6 : 1, lineHeight: 1.5,
+              }}
+              onFocus={e => e.target.style.borderColor = color + "60"}
+              onBlur={e => e.target.style.borderColor = (loading || transcribing) ? color + "50" : "#1E1E2A"}
+            />
+          </div>
 
           {/* Send button */}
           <button
             onClick={() => submit(text)}
-            disabled={loading || !text.trim()}
+            disabled={loading || transcribing || !text.trim()}
             style={{
               width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
-              background: text.trim() && !loading ? color + "20" : "transparent",
-              border: `1px solid ${text.trim() && !loading ? color : "#252530"}`,
-              color: text.trim() && !loading ? color : "#444",
-              cursor: text.trim() && !loading ? "pointer" : "default",
+              background: text.trim() && !loading && !transcribing ? color + "20" : "transparent",
+              border: `1px solid ${text.trim() && !loading && !transcribing ? color : "#252530"}`,
+              color: text.trim() && !loading && !transcribing ? color : "#444",
+              cursor: text.trim() && !loading && !transcribing ? "pointer" : "default",
               fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center",
               transition: "all 0.15s",
             }}
           >
-            {loading ? "…" : "↑"}
+            ↑
           </button>
         </div>
       </div>
