@@ -27,6 +27,10 @@ export default function AppTracker() {
   const [newAreaName, setNewAreaName] = useState("");
   const [saved, setSaved]         = useState(false);
   const [doneStep, setDoneStep]   = useState(null);
+  const [hoveredTab, setHoveredTab]       = useState(null);
+  const [editingAreaId, setEditingAreaId] = useState(null);
+  const [areaNameDraft, setAreaNameDraft] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(null); // area id
   const saveTimer = useRef();
   const stepIdsRef = useRef({ areaId: null, ids: [] });
   const sensors = useSensors(
@@ -135,6 +139,36 @@ export default function AppTracker() {
     setCA(nextCA);
     persist(nextData, nextCA);
     // Sync stepIdsRef for any new areas
+    stepIdsRef.current = { areaId: null, ids: [] };
+  }
+
+  function startRenameArea(id, label) {
+    setEditingAreaId(id);
+    setAreaNameDraft(label);
+  }
+
+  function saveRenameArea() {
+    if (!areaNameDraft.trim()) { cancelRenameArea(); return; }
+    const updatedCA = customAreas.map(a => a.id === editingAreaId ? { ...a, label: areaNameDraft.trim() } : a);
+    setCA(updatedCA);
+    persist(data, updatedCA);
+    setEditingAreaId(null);
+  }
+
+  function cancelRenameArea() {
+    setEditingAreaId(null);
+    setAreaNameDraft("");
+  }
+
+  function deleteArea(id) {
+    const updatedCA = customAreas.filter(a => a.id !== id);
+    const nextData = { ...data };
+    delete nextData[id];
+    setCA(updatedCA);
+    setData(nextData);
+    if (active === id) setActive(updatedCA[0]?.id || null);
+    persist(nextData, updatedCA);
+    setConfirmDelete(null);
     stepIdsRef.current = { areaId: null, ids: [] };
   }
 
@@ -248,20 +282,69 @@ export default function AppTracker() {
       {/* TABS */}
       <div style={{ padding: "20px 0 0" }}>
       <div style={{ maxWidth: 780, margin: "0 auto", padding: "0 36px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-        {customAreas.map(a => (
-          <button key={a.id} onClick={() => setActive(a.id)} style={{
-            padding: "6px 14px",
-            background: active === a.id ? a.color : "transparent",
-            color: active === a.id ? "#0D0D12" : hasData(a.id) ? a.color : "#bbb",
-            border: `1px solid ${active === a.id ? a.color : hasData(a.id) ? a.color + "55" : "#1E1E28"}`,
-            borderRadius: 4, cursor: "pointer", fontSize: 12, fontFamily: "monospace",
-            letterSpacing: "0.06em", fontWeight: active === a.id ? 700 : 400,
-            transition: "all 0.15s", display: "flex", alignItems: "center", gap: 5,
-          }}>
-            {a.icon} {a.label}
-            {hasData(a.id) && active !== a.id && <span style={{ width: 4, height: 4, borderRadius: "50%", background: a.color }} />}
-          </button>
-        ))}
+        {customAreas.map(a => {
+          const isActive = active === a.id;
+          const isEditing = editingAreaId === a.id;
+          const isHovered = hoveredTab === a.id;
+          return (
+            <div
+              key={a.id}
+              style={{ display: "flex", alignItems: "center", gap: 3 }}
+              onMouseEnter={() => setHoveredTab(a.id)}
+              onMouseLeave={() => setHoveredTab(null)}
+            >
+              {isEditing ? (
+                <input
+                  autoFocus
+                  value={areaNameDraft}
+                  onChange={e => setAreaNameDraft(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") saveRenameArea();
+                    if (e.key === "Escape") cancelRenameArea();
+                  }}
+                  onBlur={saveRenameArea}
+                  style={{
+                    padding: "5px 10px", background: a.color + "18",
+                    border: `1px solid ${a.color}`, borderRadius: 4,
+                    color: a.color, fontSize: 12, fontFamily: "monospace",
+                    outline: "none", minWidth: 60,
+                    width: Math.max(60, areaNameDraft.length * 8),
+                  }}
+                />
+              ) : (
+                <button
+                  onClick={() => setActive(a.id)}
+                  style={{
+                    padding: "6px 14px",
+                    background: isActive ? a.color : "transparent",
+                    color: isActive ? "#0D0D12" : hasData(a.id) ? a.color : "#bbb",
+                    border: `1px solid ${isActive ? a.color : hasData(a.id) ? a.color + "55" : "#1E1E28"}`,
+                    borderRadius: 4, cursor: "pointer", fontSize: 12, fontFamily: "monospace",
+                    letterSpacing: "0.06em", fontWeight: isActive ? 700 : 400,
+                    transition: "all 0.15s", display: "flex", alignItems: "center", gap: 5,
+                  }}
+                >
+                  {a.icon} {a.label}
+                  {hasData(a.id) && !isActive && <span style={{ width: 4, height: 4, borderRadius: "50%", background: a.color }} />}
+                </button>
+              )}
+              {isActive && isHovered && !isEditing && (
+                <>
+                  <button
+                    onClick={() => startRenameArea(a.id, a.label)}
+                    title="Rename area"
+                    style={{ background: "transparent", border: "none", color: "#666", cursor: "pointer", fontSize: 12, padding: "3px 4px", lineHeight: 1, fontFamily: "monospace" }}
+                  >✎</button>
+                  <button
+                    onClick={() => setConfirmDelete(a.id)}
+                    title="Delete area"
+                    style={{ background: "transparent", border: "none", color: "#b04040", cursor: "pointer", fontSize: 15, padding: "3px 4px", lineHeight: 1 }}
+                  >×</button>
+                </>
+              )}
+            </div>
+          );
+        })}
 
         {addingArea ? (
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -382,6 +465,32 @@ export default function AppTracker() {
       </div>
 
       {/* MODALS */}
+      {confirmDelete && (() => {
+        const target = customAreas.find(a => a.id === confirmDelete);
+        return target ? (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}
+            onClick={() => setConfirmDelete(null)}>
+            <div onClick={e => e.stopPropagation()} style={{
+              background: "#13131D", border: "1px solid #b0404044", borderRadius: 10,
+              padding: "26px 26px 22px", width: 400, maxWidth: "92vw",
+              boxShadow: "0 0 60px rgba(176,64,64,0.12)",
+            }}>
+              <div style={{ fontSize: 10, letterSpacing: "0.2em", color: "#b04040", fontFamily: "monospace", textTransform: "uppercase", marginBottom: 16 }}>
+                Delete area
+              </div>
+              <div style={{ fontSize: 14, color: "#DEDAD4", lineHeight: 1.7, marginBottom: 22 }}>
+                Delete <span style={{ color: target.color, fontWeight: 500 }}>{target.icon} {target.label}</span>? This will permanently remove the area and all its events and next steps.
+              </div>
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <button onClick={() => setConfirmDelete(null)} style={ghostBtn}>Cancel</button>
+                <button onClick={() => deleteArea(confirmDelete)} style={{ ...ghostBtn, background: "#b0404020", borderColor: "#b04040", color: "#b04040" }}>
+                  Delete area
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null;
+      })()}
       {modal && <EventModal color={areaInfo.color} onSave={addEvent} onClose={() => setModal(false)} />}
       {editing && <EventModal color={areaInfo.color} onSave={saveEdit} onClose={() => setEditing(null)} initial={editing} />}
       {doneStep && (
