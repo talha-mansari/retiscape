@@ -419,6 +419,11 @@ export default function LandingPage() {
     });
   }, [navigate]);
 
+  function startCheckout() {
+    localStorage.setItem("pendingCheckout", "1");
+    navigate("/app");
+  }
+
   // Shared style objects computed once per render
   const sec = {
     maxWidth: 1100,
@@ -648,25 +653,14 @@ export default function LandingPage() {
             </div>
           </FadeIn>
 
-          {/* Plus — Coming soon */}
+          {/* Plus */}
           <FadeIn delay={200} style={{ flex: 1 }}>
             <div style={{
               ...card,
               height: "100%", display: "flex", flexDirection: "column",
-              position: "relative",
               border: `1px solid ${PU}33`,
               boxShadow: `0 0 48px ${PU}08`,
             }}>
-              {/* Badge */}
-              <div style={{
-                position: "absolute", top: 16, right: 16,
-                fontSize: 9, letterSpacing: "0.14em", color: "#888",
-                textTransform: "uppercase", fontFamily: "monospace",
-                border: "1px solid #252535", borderRadius: 4, padding: "3px 8px",
-              }}>
-                Coming soon
-              </div>
-
               <div style={{ fontSize: 10, letterSpacing: "0.18em", color: PU, textTransform: "uppercase", fontFamily: "monospace", marginBottom: 14 }}>
                 Plus
               </div>
@@ -678,17 +672,23 @@ export default function LandingPage() {
                 Just talk. Tell Retiscape what you've been working on and AI updates your timeline automatically.
               </p>
               <div>
-                <button disabled style={{
-                  background: "transparent",
-                  border: `1px solid ${PU}33`,
-                  borderRadius: 6, color: "#888",
-                  padding: isMobile ? "13px 26px" : "15px 32px",
-                  fontSize: isMobile ? 14 : 15,
-                  fontFamily: "Georgia, serif",
-                  cursor: "default", letterSpacing: "-0.01em",
-                  opacity: 0.55,
-                }}>
-                  Coming soon
+                <button
+                  onClick={startCheckout}
+                  style={{
+                    background: `${PU}18`,
+                    border: `1px solid ${PU}99`,
+                    borderRadius: 6, color: PU,
+                    padding: isMobile ? "13px 26px" : "15px 32px",
+                    fontSize: isMobile ? 14 : 15,
+                    fontFamily: "Georgia, serif",
+                    cursor: "pointer",
+                    letterSpacing: "-0.01em",
+                    transition: "all 0.15s",
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = `${PU}28`}
+                  onMouseLeave={e => e.currentTarget.style.background = `${PU}18`}
+                >
+                  Get started →
                 </button>
               </div>
             </div>
