@@ -1,3 +1,6 @@
+// Moved to src/pages/LandingPage.jsx — this file kept as a re-export shim.
+export { default } from "./pages/LandingPage";
+// ↓ original file content (unreachable — kept for reference during transition)
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";

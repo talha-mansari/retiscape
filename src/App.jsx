@@ -1,3 +1,6 @@
+// Moved to src/pages/AppTracker.jsx — this file kept as a re-export shim.
+export { default } from "./pages/AppTracker";
+// ↓ original file content (unreachable — kept for reference during transition)
 import { useState, useEffect, useRef } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";

@@ -1,9 +1,6 @@
-// Moved to src/pages/AuthScreen.jsx — this file kept as a re-export shim.
-export { default } from "./pages/AuthScreen";
-// ↓ original file content (unreachable — kept for reference during transition)
 import { useState } from "react";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { auth } from "./firebase";
+import { auth } from "../firebase";
 
 const baseInput = {
   width: "100%", boxSizing: "border-box",
